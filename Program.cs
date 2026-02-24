@@ -38,7 +38,42 @@ namespace Lumina_Learning
 
                 // Add services to the container
                 builder.Services.AddControllers();
-                builder.Services.AddOpenApi();
+                
+                // Configure OpenAPI with proper server URLs
+                builder.Services.AddOpenApi(options =>
+                {
+                    options.AddDocumentTransformer((document, context, cancellationToken) =>
+                    {
+                        // Use HTTPS in production (Railway, etc.)
+                        if (builder.Environment.IsProduction())
+                        {
+                            var serverUrl = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN");
+                            if (!string.IsNullOrEmpty(serverUrl))
+                            {
+                                document.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+                                {
+                                    new() { Url = $"https://{serverUrl}" }
+                                };
+                            }
+                            else
+                            {
+                                // Fallback: use relative URL with HTTPS scheme
+                                document.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+                                {
+                                    new() { Url = "/" }
+                                };
+                            }
+                        }
+                        return Task.CompletedTask;
+                    });
+                });
+
+                // Configure routing to lowercase URLs
+                builder.Services.Configure<RouteOptions>(options =>
+                {
+                    options.LowercaseUrls = true;
+                    options.LowercaseQueryStrings = false;
+                });
 
                 // Configure CORS - Allow all origins for Railway deployment
                 builder.Services.AddCors(options =>
@@ -102,6 +137,13 @@ namespace Lumina_Learning
                 }
 
                 var app = builder.Build();
+
+                // Configure forwarded headers for Railway proxy
+                app.UseForwardedHeaders(new ForwardedHeadersOptions
+                {
+                    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
+                                     | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+                });
 
                 app.Logger.LogInformation("=== Application Starting ===");
                 app.Logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
