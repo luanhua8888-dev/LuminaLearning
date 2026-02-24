@@ -1,8 +1,7 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile.simple"
+dockerfilePath = "Dockerfile.railway"
 
 [deploy]
-startCommand = "dotnet LuminaLearning.dll"
-healthcheckPath = "/health"
+healthcheckPath = "/ping"
 healthcheckTimeout = 300

@@ -1,0 +1,30 @@
+# Minimal Dockerfile for Railway - No health check dependencies
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy and restore
+COPY ["Lumina Learning.csproj", "./"]
+RUN dotnet restore "Lumina Learning.csproj"
+
+# Build
+COPY . .
+RUN dotnet publish "Lumina Learning.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+
+# Use PORT from Railway
+ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Copy published files
+COPY --from=build /app/publish .
+
+# Rename to avoid spaces
+RUN mv "Lumina Learning.dll" LuminaLearning.dll 2>/dev/null || true && \
+    mv "Lumina Learning.deps.json" LuminaLearning.deps.json 2>/dev/null || true && \
+    mv "Lumina Learning.runtimeconfig.json" LuminaLearning.runtimeconfig.json 2>/dev/null || true
+
+# Start app
+CMD ["dotnet", "LuminaLearning.dll"]
