@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ['dotnet-sdk_10']
+
+[phases.build]
+cmds = [
+  'dotnet restore "Lumina Learning.csproj"',
+  'dotnet publish "Lumina Learning.csproj" -c Release -o /app/publish'
+]
+
+[start]
+cmd = 'cd /app/publish && dotnet "Lumina Learning.dll"'
