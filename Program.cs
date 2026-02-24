@@ -1,4 +1,5 @@
 using Lumina_Learning.Data;
+using Lumina_Learning.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Supabase;
@@ -39,34 +40,8 @@ namespace Lumina_Learning
                 // Add services to the container
                 builder.Services.AddControllers();
                 
-                // Configure OpenAPI with proper server URLs
-                builder.Services.AddOpenApi(options =>
-                {
-                    options.AddDocumentTransformer((document, context, cancellationToken) =>
-                    {
-                        // Use HTTPS in production (Railway, etc.)
-                        if (builder.Environment.IsProduction())
-                        {
-                            var serverUrl = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN");
-                            if (!string.IsNullOrEmpty(serverUrl))
-                            {
-                                document.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
-                                {
-                                    new() { Url = $"https://{serverUrl}" }
-                                };
-                            }
-                            else
-                            {
-                                // Fallback: use relative URL with HTTPS scheme
-                                document.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
-                                {
-                                    new() { Url = "/" }
-                                };
-                            }
-                        }
-                        return Task.CompletedTask;
-                    });
-                });
+                // Configure OpenAPI
+                builder.Services.AddOpenApi();
 
                 // Configure routing to lowercase URLs
                 builder.Services.Configure<RouteOptions>(options =>
@@ -144,6 +119,9 @@ namespace Lumina_Learning
                     ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
                                      | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
                 });
+
+                // Middleware to fix OpenAPI URLs to use HTTPS
+                app.UseMiddleware<OpenApiHttpsMiddleware>();
 
                 app.Logger.LogInformation("=== Application Starting ===");
                 app.Logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
