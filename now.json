@@ -1,0 +1,15 @@
+{
+  "name": "Lumina Learning API",
+  "builds": [
+    {
+      "src": "Lumina Learning.csproj",
+      "use": "@now/dotnet"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}
