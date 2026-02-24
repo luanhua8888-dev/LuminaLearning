@@ -15,11 +15,22 @@ namespace Lumina_Learning
                 var builder = WebApplication.CreateBuilder(args);
 
                 // Configure Kestrel to listen on PORT environment variable (for Railway, Render, etc.)
-                var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-                builder.WebHost.ConfigureKestrel(serverOptions =>
+                var port = Environment.GetEnvironmentVariable("PORT");
+                if (!string.IsNullOrEmpty(port))
                 {
-                    serverOptions.ListenAnyIP(int.Parse(port));
-                });
+                    // Clear default URLs to avoid conflicts
+                    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+                    
+                    builder.WebHost.ConfigureKestrel(serverOptions =>
+                    {
+                        serverOptions.ListenAnyIP(int.Parse(port));
+                    });
+                }
+                else if (builder.Environment.IsProduction())
+                {
+                    // Production fallback without PORT env var
+                    builder.WebHost.UseUrls("http://0.0.0.0:8080");
+                }
 
                 // Add configuration sources
                 builder.Configuration
@@ -84,7 +95,11 @@ namespace Lumina_Learning
 
                 app.Logger.LogInformation("=== Application Starting ===");
                 app.Logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
-                app.Logger.LogInformation("Port: {Port}", port);
+                if (!string.IsNullOrEmpty(port))
+                {
+                    app.Logger.LogInformation("Listening on PORT: {Port}", port);
+                }
+                app.Logger.LogInformation("URLs: {Urls}", string.Join(", ", app.Urls));
                 app.Logger.LogInformation("Supabase URL: {Url}", supabaseUrl);
 
                 // Configure the HTTP request pipeline
