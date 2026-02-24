@@ -3,6 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile.simple"
 
 [deploy]
-startCommand = "dotnet Lumina Learning.dll"
+startCommand = "dotnet LuminaLearning.dll"
 healthcheckPath = "/health"
 healthcheckTimeout = 100

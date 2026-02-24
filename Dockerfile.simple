@@ -22,8 +22,13 @@ EXPOSE ${PORT}
 
 COPY --from=publish /app/publish .
 
+# Rename DLL to avoid space issues
+RUN mv "Lumina Learning.dll" LuminaLearning.dll && \
+    mv "Lumina Learning.deps.json" LuminaLearning.deps.json && \
+    mv "Lumina Learning.runtimeconfig.json" LuminaLearning.runtimeconfig.json
+
 # Không t?o user m?i, ch?y v?i user m?c ??nh c?a image
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:${PORT}/health || exit 1
 
-ENTRYPOINT ["dotnet", "Lumina Learning.dll"]
+ENTRYPOINT ["dotnet", "LuminaLearning.dll"]
