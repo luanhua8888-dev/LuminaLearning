@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Lumina_Learning.Models;
 using Lumina_Learning.DTOs;
+using Lumina_Learning.Filters;
 using Supabase;
 
 namespace Lumina_Learning.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[RequireSupabase]
 public class ClassroomsController : ControllerBase
 {
     private readonly Supabase.Client _supabase;
