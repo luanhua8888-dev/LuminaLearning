@@ -54,42 +54,57 @@ namespace Lumina_Learning
                     });
                 });
 
-                // Register Supabase Client
+                // Register Supabase Client (optional - only if configured)
                 var supabaseUrl = builder.Configuration["Supabase:Url"];
                 var supabaseKey = builder.Configuration["Supabase:Key"];
 
-                if (string.IsNullOrEmpty(supabaseUrl) || string.IsNullOrEmpty(supabaseKey))
+                if (!string.IsNullOrEmpty(supabaseUrl) && !string.IsNullOrEmpty(supabaseKey))
                 {
-                    throw new InvalidOperationException("Supabase configuration is missing. Please check appsettings.json or appsettings.Local.json");
+                    builder.Services.AddScoped<Supabase.Client>(_ =>
+                    {
+                        var options = new SupabaseOptions
+                        {
+                            AutoConnectRealtime = true
+                        };
+                        return new Supabase.Client(supabaseUrl, supabaseKey, options);
+                    });
+                }
+                else
+                {
+                    Console.WriteLine("WARNING: Supabase configuration is missing. Some features may not work.");
                 }
 
-                builder.Services.AddScoped<Supabase.Client>(_ =>
-                {
-                    var options = new SupabaseOptions
-                    {
-                        AutoConnectRealtime = true
-                    };
-                    return new Supabase.Client(supabaseUrl, supabaseKey, options);
-                });
-
                 // Keep PostgreSQL for HealthController
-                builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+                if (!string.IsNullOrEmpty(connectionString))
                 {
-                    options.UseNpgsql(
-                        builder.Configuration.GetConnectionString("DefaultConnection"),
-                        npgsqlOptions =>
-                        {
-                            npgsqlOptions.EnableRetryOnFailure(
-                                maxRetryCount: 5,
-                                maxRetryDelay: TimeSpan.FromSeconds(10),
-                                errorCodesToAdd: null);
-                            npgsqlOptions.CommandTimeout(30);
-                        });
-                });
+                    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                    {
+                        options.UseNpgsql(
+                            connectionString,
+                            npgsqlOptions =>
+                            {
+                                npgsqlOptions.EnableRetryOnFailure(
+                                    maxRetryCount: 3,
+                                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                                    errorCodesToAdd: null);
+                                npgsqlOptions.CommandTimeout(10);
+                            });
+                    });
 
-                // Add health checks
-                builder.Services.AddHealthChecks()
-                    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+                    // Add health checks with database
+                    builder.Services.AddHealthChecks()
+                        .AddNpgSql(connectionString, 
+                            timeout: TimeSpan.FromSeconds(3),
+                            name: "database",
+                            failureStatus: HealthStatus.Degraded);
+                }
+                else
+                {
+                    // Add basic health check without database
+                    builder.Services.AddHealthChecks();
+                    Console.WriteLine("WARNING: Database connection string is missing. Running without database.");
+                }
 
                 var app = builder.Build();
 
@@ -100,7 +115,8 @@ namespace Lumina_Learning
                     app.Logger.LogInformation("Listening on PORT: {Port}", port);
                 }
                 app.Logger.LogInformation("URLs: {Urls}", string.Join(", ", app.Urls));
-                app.Logger.LogInformation("Supabase URL: {Url}", supabaseUrl);
+                app.Logger.LogInformation("Supabase configured: {Configured}", !string.IsNullOrEmpty(supabaseUrl));
+                app.Logger.LogInformation("Database configured: {Configured}", !string.IsNullOrEmpty(connectionString));
 
                 // Configure the HTTP request pipeline
                 if (app.Environment.IsDevelopment())
@@ -122,8 +138,27 @@ namespace Lumina_Learning
 
                 app.MapControllers();
 
-                // Map health check endpoint
-                app.MapHealthChecks("/health");
+                // Map health check endpoint (with custom response)
+                app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                {
+                    ResponseWriter = async (context, report) =>
+                    {
+                        context.Response.ContentType = "application/json";
+                        var response = new
+                        {
+                            status = report.Status.ToString(),
+                            checks = report.Entries.Select(e => new
+                            {
+                                name = e.Key,
+                                status = e.Value.Status.ToString(),
+                                description = e.Value.Description,
+                                duration = e.Value.Duration.TotalMilliseconds
+                            }),
+                            timestamp = DateTime.UtcNow
+                        };
+                        await context.Response.WriteAsJsonAsync(response);
+                    }
+                });
 
                 app.Logger.LogInformation("=== Application Started Successfully ===");
                 app.Run();

@@ -27,8 +27,8 @@ RUN mv "Lumina Learning.dll" LuminaLearning.dll && \
     mv "Lumina Learning.deps.json" LuminaLearning.deps.json && \
     mv "Lumina Learning.runtimeconfig.json" LuminaLearning.runtimeconfig.json
 
-# Không t?o user m?i, ch?y v?i user m?c ??nh c?a image
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check with longer timeout and start period
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:${PORT}/health || exit 1
 
 ENTRYPOINT ["dotnet", "LuminaLearning.dll"]

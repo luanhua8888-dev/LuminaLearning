@@ -5,4 +5,4 @@ dockerfilePath = "Dockerfile.simple"
 [deploy]
 startCommand = "dotnet LuminaLearning.dll"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
