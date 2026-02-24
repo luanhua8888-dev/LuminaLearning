@@ -14,6 +14,13 @@ namespace Lumina_Learning
             {
                 var builder = WebApplication.CreateBuilder(args);
 
+                // Configure Kestrel to listen on PORT environment variable (for Railway, Render, etc.)
+                var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+                builder.WebHost.ConfigureKestrel(serverOptions =>
+                {
+                    serverOptions.ListenAnyIP(int.Parse(port));
+                });
+
                 // Add configuration sources
                 builder.Configuration
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -77,6 +84,7 @@ namespace Lumina_Learning
 
                 app.Logger.LogInformation("=== Application Starting ===");
                 app.Logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+                app.Logger.LogInformation("Port: {Port}", port);
                 app.Logger.LogInformation("Supabase URL: {Url}", supabaseUrl);
 
                 // Configure the HTTP request pipeline
@@ -89,7 +97,11 @@ namespace Lumina_Learning
                 // Enable CORS
                 app.UseCors();
 
-                app.UseHttpsRedirection();
+                // Disable HTTPS redirection in production if behind a proxy
+                if (!app.Environment.IsProduction())
+                {
+                    app.UseHttpsRedirection();
+                }
 
                 app.UseAuthorization();
 
