@@ -18,9 +18,7 @@ namespace Lumina_Learning
                 var port = Environment.GetEnvironmentVariable("PORT");
                 if (!string.IsNullOrEmpty(port))
                 {
-                    // Clear default URLs to avoid conflicts
                     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-                    
                     builder.WebHost.ConfigureKestrel(serverOptions =>
                     {
                         serverOptions.ListenAnyIP(int.Parse(port));
@@ -28,7 +26,6 @@ namespace Lumina_Learning
                 }
                 else if (builder.Environment.IsProduction())
                 {
-                    // Production fallback without PORT env var
                     builder.WebHost.UseUrls("http://0.0.0.0:8080");
                 }
 
@@ -39,18 +36,19 @@ namespace Lumina_Learning
                     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
                     .AddEnvironmentVariables();
 
-                // Add services to the container.
+                // Add services to the container
                 builder.Services.AddControllers();
                 builder.Services.AddOpenApi();
 
-                // Configure CORS for production
+                // Configure CORS - Allow all origins for Railway deployment
                 builder.Services.AddCors(options =>
                 {
                     options.AddDefaultPolicy(policy =>
                     {
                         policy.AllowAnyOrigin()
                               .AllowAnyHeader()
-                              .AllowAnyMethod();
+                              .AllowAnyMethod()
+                              .WithExposedHeaders("*");
                     });
                 });
 
@@ -74,22 +72,20 @@ namespace Lumina_Learning
                     Console.WriteLine("WARNING: Supabase configuration is missing. Some features may not work.");
                 }
 
-                // Keep PostgreSQL for HealthController
+                // PostgreSQL Database (optional - only if configured)
                 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
                 if (!string.IsNullOrEmpty(connectionString))
                 {
                     builder.Services.AddDbContext<ApplicationDbContext>(options =>
                     {
-                        options.UseNpgsql(
-                            connectionString,
-                            npgsqlOptions =>
-                            {
-                                npgsqlOptions.EnableRetryOnFailure(
-                                    maxRetryCount: 3,
-                                    maxRetryDelay: TimeSpan.FromSeconds(5),
-                                    errorCodesToAdd: null);
-                                npgsqlOptions.CommandTimeout(10);
-                            });
+                        options.UseNpgsql(connectionString, npgsqlOptions =>
+                        {
+                            npgsqlOptions.EnableRetryOnFailure(
+                                maxRetryCount: 3,
+                                maxRetryDelay: TimeSpan.FromSeconds(5),
+                                errorCodesToAdd: null);
+                            npgsqlOptions.CommandTimeout(10);
+                        });
                     });
 
                     // Add health checks with database
@@ -101,7 +97,6 @@ namespace Lumina_Learning
                 }
                 else
                 {
-                    // Add basic health check without database
                     builder.Services.AddHealthChecks();
                     Console.WriteLine("WARNING: Database connection string is missing. Running without database.");
                 }
@@ -114,11 +109,9 @@ namespace Lumina_Learning
                 {
                     app.Logger.LogInformation("Listening on PORT: {Port}", port);
                 }
-                app.Logger.LogInformation("URLs: {Urls}", string.Join(", ", app.Urls));
                 app.Logger.LogInformation("Supabase configured: {Configured}", !string.IsNullOrEmpty(supabaseUrl));
                 app.Logger.LogInformation("Database configured: {Configured}", !string.IsNullOrEmpty(connectionString));
 
-                // Configure the HTTP request pipeline
                 // Enable OpenAPI and Scalar UI in all environments
                 app.MapOpenApi();
                 app.MapScalarApiReference(options =>
@@ -129,20 +122,19 @@ namespace Lumina_Learning
                         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
                 });
 
-                // Enable CORS
+                // IMPORTANT: Enable CORS before other middleware
                 app.UseCors();
 
-                // Disable HTTPS redirection in production if behind a proxy
-                if (!app.Environment.IsProduction())
+                // Don't redirect to HTTPS in production (Railway handles SSL)
+                if (app.Environment.IsDevelopment())
                 {
                     app.UseHttpsRedirection();
                 }
 
                 app.UseAuthorization();
-
                 app.MapControllers();
 
-                // Map health check endpoint (with custom response)
+                // Map health check endpoint with custom response
                 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
                 {
                     ResponseWriter = async (context, report) =>
