@@ -1,0 +1,63 @@
+# Ignore build outputs
+bin/
+obj/
+publish/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# Publish profiles
+PublishProfiles/
+
+# Environment files
+appsettings.Development.json
+appsettings.Production.json
+*.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Migrations (optional - uncomment if you don't want to commit migrations)
+# Migrations/
+
+# Node modules (if using frontend)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Sensitive data
+appsettings.*.json
+!appsettings.json
+
+# Test results
+TestResults/
+*.trx
+
+# Package files
+*.nupkg
+*.snupkg
+
+# Docker
+docker-compose.override.yml

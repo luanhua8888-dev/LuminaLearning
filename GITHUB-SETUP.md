@@ -1,0 +1,233 @@
+# ?? H??NG D?N ??Y CODE LÊN GITHUB
+
+## ?? Cách 1: S? d?ng Script T? ??ng (Khuy?n ngh?)
+
+### B??c 1: T?o Repository trên GitHub
+1. Truy c?p https://github.com/new
+2. Repository name: `lumina-learning` (ho?c tên b?n mu?n)
+3. Description: `School Management API with .NET 10 and Supabase`
+4. **QUAN TR?NG:** 
+   - ? KHÔNG check "Add a README file"
+   - ? KHÔNG check "Add .gitignore"
+   - ? KHÔNG check "Choose a license"
+5. Click **Create repository**
+6. Copy URL repository (ví d?: `https://github.com/username/lumina-learning.git`)
+
+### B??c 2: Ch?y Script
+```powershell
+# M? PowerShell trong th? m?c project
+cd "C:\Users\Software\source\repos\Lumina Learning\LuL\"
+
+# Ch?y script
+.\push-to-github.ps1
+```
+
+Script s?:
+- ? Ki?m tra Git ?ã cài ch?a
+- ? Kh?i t?o Git repository
+- ? Ki?m tra file nh?y c?m
+- ? Add và commit t?t c? file
+- ? Push lên GitHub
+
+### B??c 3: Nh?p thông tin khi ???c h?i
+```
+Enter your GitHub repository URL: https://github.com/username/lumina-learning.git
+```
+
+---
+
+## ?? Cách 2: Th? Công (Manual)
+
+### B??c 1: T?o Repository trên GitHub (gi?ng Cách 1)
+
+### B??c 2: Kh?i t?o Git
+```bash
+# M? PowerShell ho?c Git Bash
+cd "C:\Users\Software\source\repos\Lumina Learning\LuL\"
+
+# Kh?i t?o Git
+git init
+```
+
+### B??c 3: Add file và Commit
+```bash
+# Xem tr?ng thái
+git status
+
+# Add t?t c? file
+git add .
+
+# Commit
+git commit -m "Initial commit - Lumina Learning API"
+```
+
+### B??c 4: ??i branch thành main
+```bash
+git branch -M main
+```
+
+### B??c 5: Add remote và Push
+```bash
+# Thay YOUR_USERNAME và YOUR_REPO b?ng thông tin c?a b?n
+git remote add origin https://github.com/YOUR_USERNAME/lumina-learning.git
+
+# Push lên GitHub
+git push -u origin main
+```
+
+---
+
+## ?? B?O M?T - QUAN TR?NG!
+
+### ? ?ã ???c b?o v? (trong .gitignore):
+- ? `appsettings.Development.json`
+- ? `appsettings.Production.json`
+- ? `.env` và các file environment
+- ? Folders: `bin/`, `obj/`, `.vs/`
+
+### ?? Ki?m tra TR??C KHI PUSH:
+
+**KHÔNG BAO GI? commit nh?ng thông tin này:**
+```json
+{
+  "Supabase": {
+    "Url": "https://jbvtftlooctnfjkkosms.supabase.co",  // ?? Công khai OK
+    "Key": "sb_publishable_..."  // ?? Anon key công khai OK, nh?ng Service key thì KHÔNG
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "postgresql://...YOUR_PASSWORD..."  // ? TUY?T ??I KHÔNG
+  }
+}
+```
+
+### ??? ?? b?o m?t h?n:
+
+**Xóa thông tin nh?y c?m trong `appsettings.json` tr??c khi push:**
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Supabase": {
+    "Url": "YOUR_SUPABASE_URL_HERE",
+    "Key": "YOUR_SUPABASE_KEY_HERE"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "YOUR_CONNECTION_STRING_HERE"
+  }
+}
+```
+
+Sau ?ó t?o file **local** `appsettings.Development.json` v?i thông tin th?t (file này ?ã có trong .gitignore).
+
+---
+
+## ?? C?u hình GitHub Secrets (Cho CI/CD)
+
+Sau khi push, c?u hình secrets cho GitHub Actions:
+
+1. Vào repository ? **Settings** ? **Secrets and variables** ? **Actions**
+2. Click **New repository secret**
+3. Thêm các secrets:
+
+| Name | Value |
+|------|-------|
+| `AZURE_WEBAPP_PUBLISH_PROFILE` | Download t? Azure Portal |
+| `SUPABASE_URL` | URL Supabase c?a b?n |
+| `SUPABASE_KEY` | Key Supabase c?a b?n |
+| `CONNECTION_STRING` | Connection string database |
+
+---
+
+## ? Ki?m tra sau khi Push
+
+```bash
+# Ki?m tra remote
+git remote -v
+
+# Ki?m tra branch
+git branch -a
+
+# Xem commit history
+git log --oneline
+```
+
+Truy c?p GitHub repository ?? verify:
+```
+https://github.com/YOUR_USERNAME/lumina-learning
+```
+
+---
+
+## ?? Troubleshooting
+
+### L?i: "failed to push some refs"
+```bash
+# Pull tr??c r?i push l?i
+git pull origin main --allow-unrelated-histories
+git push -u origin main
+```
+
+### L?i: "authentication failed"
+S? d?ng Personal Access Token:
+1. GitHub ? Settings ? Developer settings ? Personal access tokens
+2. Generate new token (classic)
+3. Ch?n scopes: `repo`, `workflow`
+4. Copy token
+5. Khi push, dùng token làm password
+
+### L?i: "remote origin already exists"
+```bash
+# Xóa và add l?i
+git remote remove origin
+git remote add origin https://github.com/YOUR_USERNAME/lumina-learning.git
+```
+
+---
+
+## ?? Checklist Tr??c Khi Push
+
+- [ ] ? ?ã t?o repository trên GitHub
+- [ ] ? File `.gitignore` ?ã ???c t?o
+- [ ] ? ?ã xóa ho?c ?n thông tin nh?y c?m trong `appsettings.json`
+- [ ] ? Ch?y `git status` ?? ki?m tra file s? commit
+- [ ] ? KHÔNG có file `appsettings.Production.json` ho?c `.env` trong danh sách
+- [ ] ? Build thành công: `dotnet build`
+
+---
+
+## ?? Sau Khi Push Thành Công
+
+### 1. Add README Badge
+Thêm vào ??u `README.md`:
+```markdown
+![.NET](https://img.shields.io/badge/.NET-10.0-blue)
+![Build](https://github.com/YOUR_USERNAME/lumina-learning/workflows/Build/badge.svg)
+```
+
+### 2. Enable GitHub Actions
+- Workflows ?ã s?n sàng trong `.github/workflows/`
+- S? t? ??ng ch?y khi push code
+
+### 3. T?o Release
+```bash
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin v1.0.0
+```
+
+### 4. Clone t? n?i khác ?? test
+```bash
+git clone https://github.com/YOUR_USERNAME/lumina-learning.git
+cd lumina-learning
+dotnet restore
+dotnet build
+```
+
+---
+
+**Chúc b?n thành công! ??**
